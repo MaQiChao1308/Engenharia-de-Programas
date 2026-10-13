@@ -67,9 +67,11 @@ for item in arquivos_n:
     for k in k_list:
         for r in range(R):
             t0 = time.perf_counter()
-            segmenta_imagem(img_array, k)  # A matriz é passada aqui
+            seg_img = segmenta_imagem(img_array, k)  # A matriz é passada aqui
             t1 = time.perf_counter()
             
+            if r==0: plt.imshow(seg_img), plt.show()
+
             resultados.append({
                 'arquivo': nome_arquivo,
                 'n': n, 

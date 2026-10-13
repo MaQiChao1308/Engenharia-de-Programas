@@ -1,8 +1,44 @@
 import cv2        
 
+
+
 class KMeansSegmentation: 
 
-    def find_clusters(image, cluster_numbers: int):
+    def load_image(self, img_path: str):
+
+        img  = cv2.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        return img
+    
+    def extract_range(img) -> list:
+        n, m, c = img.shape
+
+        plano = []
+        faixa = []
+
+        for cor in range(c):
+            plano.append(img[:,:,cor])
+            faixa.append(plano[-1].flatten())
+
+        return faixa
+    
+    def create_first_clusters(faixa: list) -> list:
+        centroid = []
+        v = []
+        n_pixels = len(faixa[0])
+
+        for k in range(K):
+            px = np.random.randint(0, n_pixels)
+            v0 = faixa[0][px]
+            v1 = faixa[1][px]
+            v2 = faixa[2][px]
+            centroid.append([v0,v1,v2])
+
+    def find_clusters(self, image_path, cluster_numbers: int):
+
+        img = self.load_image(image_path)
+
         conv = False
         number_iter = 0
 
