@@ -2,6 +2,8 @@ import os
 import time
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from PIL import Image
 from scipy.optimize import curve_fit
