@@ -341,7 +341,87 @@ Toda a infraestrutura de **calibração empírica de desempenho e análise cient
 
 ---
 
-## 5. Onde encontrar cada versão no repositório
+## 5. Fundamentação Teórica da Complexidade: Por que $n \times k$ e não Exponencial?
+
+Uma dúvida recorrente em apresentações e arguições acadêmicas é entender a natureza do crescimento do tempo de execução:
+
+### A. É Exponencial?
+**Não! O K-Means possui complexidade polinomial/bilinear, e NÃO exponencial.**
+* Se fosse exponencial ($\mathcal{O}(2^n)$ ou $\mathcal{O}(k^n)$), o processamento de uma imagem de apenas $55.000$ pixels levaria $2^{55000}$ operações — mais do que o tempo de existência do universo!
+* No K-Means clássico por iteração, a complexidade computacional é:
+  $$\text{Complexidade por Iteração} = \mathcal{O}(n \cdot k \cdot d)$$
+  Onde $n$ é o total de pixels, $k$ é o número de centróides e $d$ é a dimensão do espaço de cores ($d = 3$ canais RGB).
+
+---
+
+### B. A Mecânica dos Laços Aninhados no Código
+
+A explicação matemática direta está nas linhas 79 a 85 de [`segunda_unidade/k-means.py`](file:///home/maqichao/faculdade/EP/Engenharia-de-Programas/segunda_unidade/k-means.py#L79-L85):
+
+```python
+for px in range(n_pixels):               # <--- Laço 1: itera n vezes
+    for k in range(cluster_numbers):     # <--- Laço 2: itera k vezes para cada pixel
+        d.append(np.linalg.norm(np.array(v) - np.array(centroid[k])))  # Operação básica
+```
+
+A operação matemática mais custosa da CPU (`np.linalg.norm` — cálculo da distância euclidiana tridimensional) é executada exatamente **$n \times k$ vezes por iteração**:
+
+$$\text{Total de Cálculos por Iteração} = n \times k$$
+
+1. **Quando o número de clusters aumenta em $+1$ ($k \rightarrow k + 1$):**
+   * Um novo centróide é inserido no espaço de cores.
+   * **Todos os $n$ pixels existentes da imagem** precisam obrigatoriamente medir sua distância até esse novo centróide.
+   * **Acréscimo:** $+n$ cálculos a mais a cada iteração (ex: $+55.696$ operações de distância).
+2. **Quando o número de pixels aumenta em $+1$ ($n \rightarrow n + 1$):**
+   * Um novo pixel é adicionado na imagem.
+   * Esse único pixel precisa ser comparado com **todos os $k$ centróides existentes** para saber a qual grupo pertence.
+   * **Acréscimo:** $+k$ cálculos a mais a cada iteração (ex: $+3$ ou $+4$ operações de distância).
+
+Por essa razão, no ajuste de curva do protocolo F.O.C.A., o **termo dominante** é o produto $\mathbf{\alpha(n \cdot k)}$.
+
+---
+
+## 6. Resultados Empíricos Obtidos no Experimento
+
+O experimento foi executado com as 3 imagens oficiais (*Miranhas*), com $R = 30$ repetições para cada par $(n, k)$, totalizando **270 execuções completas**:
+
+### A. Tabela Oficial de Medições ([resultados_foca_aluno.csv](file:///home/maqichao/faculdade/EP/Engenharia-de-Programas/segunda_unidade/resultados_foca_aluno.csv))
+
+| Imagem | Pixels ($n$) | Clusters ($k$) | Tempo Médio Real | Desvio Padrão ($\sigma$) | Coeficiente de Variação ($CV$) | Tempo Predito pelo Modelo |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `miranha_venom` / `miranha` | 55.696 px | $k=2$ | **3,5411 s** | 1,1835 s | 33,42% | 3,5577 s |
+| `miranha_venom` / `miranha` | 55.696 px | $k=3$ | **6,9909 s** | 1,9983 s | 28,58% | 6,9577 s |
+| `miranha_venom` / `miranha` | 55.696 px | $k=4$ | **10,3409 s** | 3,4323 s | 33,19% | 10,3576 s |
+| `miranha_comendo` | 65.536 px | $k=2$ | **4,4723 s** | 1,1288 s | 25,24% | 5,2538 s |
+| `miranha_comendo` | 65.536 px | $k=3$ | **11,8342 s** | 2,1271 s | 17,97% | 10,2712 s |
+| `miranha_comendo` | 65.536 px | $k=4$ | **14,5069 s** | 3,2522 s | 22,42% | 15,2885 s |
+
+### B. Parâmetros da Equação Analítica Ajustada via `curve_fit`
+A regressão deduziu os seguintes parâmetros empíricos para $T(n, k) = \alpha(n \cdot k) + \beta n + \gamma k + \delta$:
+* $\alpha \approx 1{,}6437 \times 10^{-4}$ (custo unitário por cálculo de distância pixel-centróide)
+* $\beta \approx -1{,}5637 \times 10^{-4}$
+* $\gamma \approx -5{,}7548$
+* $\delta \approx 5{,}4672$
+
+Os gráficos com os pontos empíricos e as linhas de regressão estão salvos em alta definição em [segunda_unidade/relatorio_complexidade.png](file:///home/maqichao/faculdade/EP/Engenharia-de-Programas/segunda_unidade/relatorio_complexidade.png).
+
+---
+
+## 7. Guia de Defesa na TV da Sala (Perguntas Prováveis do Professor)
+
+Como o professor anunciou que passará uma peneira com perguntas específicas a cada membro na TV, aqui estão as respostas diretas e tecnicamente embasadas:
+
+| Pergunta do Professor | O que responder |
+| :--- | :--- |
+| **"O que representam as curvas do Plot A e do Plot B?"** | *"O Plot A mostra o Tempo vs. Tamanho ($n$) para cada valor de $k$, mostrando que o custo sobe linearmente com os pixels. O Plot B mostra o Tempo vs. Clusters ($k$), evidenciando como a complexidade escala quando buscamos mais cores."* |
+| **"O que são os pontos sólidos e as linhas tracejadas?"** | *"Os pontos sólidos são as médias reais empíricas medidas pela CPU após filtragem de outliers. As linhas tracejadas são a curva teórica ajustada pelo algoritmo de Levenberg-Marquardt (`curve_fit`)."* |
+| **"Por que o K-Means não é exponencial?"** | *"Porque o número de operações a cada iteração é estritamente $n \times k$. É uma relação bilinear/polinomial. Para cada novo centróide $k$, todos os $n$ pixels calculam mais uma distância; e para cada pixel novo $n$, calculam-se $k$ distâncias."* |
+| **"O que foi feito no protocolo F.O.C.A.?"** | *"Executamos $R=30$ repetições para validade do Teorema Central do Limite, descartamos percentis de 5% e 95% para eliminar ruídos de interrupção de SO, e analisamos o Coeficiente de Variação ($CV$) para medir estabilidade."* |
+| **"Como as imagens segmentadas foram salvas?"** | *"Na primeira repetição ($r=0$) de cada valor de $k$, a matriz NumPy do K-Means é convertida via Pillow e salva na pasta `imagens_segmentadas/` com o nome da imagem e o número de clusters."* |
+
+---
+
+## 8. Onde encontrar cada arquivo no repositório
 
 * **Código de 24 de setembro:**
   * Histórico do Git: commit `8da99d21950cebd212aa76500e6e74c42aac0f02` (`git show 8da99d2`)
@@ -349,4 +429,6 @@ Toda a infraestrutura de **calibração empírica de desempenho e análise cient
 * **Código atual:**
   * Algoritmo refatorado: [segunda_unidade/k-means.py](file:///home/maqichao/faculdade/EP/Engenharia-de-Programas/segunda_unidade/k-means.py)
   * Arcabouço experimental: [segunda_unidade/experimentador.py](file:///home/maqichao/faculdade/EP/Engenharia-de-Programas/segunda_unidade/experimentador.py)
+  * Gráficos comparativos gerados: [segunda_unidade/relatorio_complexidade.png](file:///home/maqichao/faculdade/EP/Engenharia-de-Programas/segunda_unidade/relatorio_complexidade.png)
+  * Tabela oficial de dados: [segunda_unidade/resultados_foca_aluno.csv](file:///home/maqichao/faculdade/EP/Engenharia-de-Programas/segunda_unidade/resultados_foca_aluno.csv)
   * Imagens segmentadas geradas: [segunda_unidade/imagens_segmentadas/](file:///home/maqichao/faculdade/EP/Engenharia-de-Programas/segunda_unidade/imagens_segmentadas/)
