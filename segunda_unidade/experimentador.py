@@ -7,18 +7,24 @@ from PIL import Image
 from scipy.optimize import curve_fit
 
 # ==========================================
-# 1. Função do Aluno (Mock)
+# 1. Função do Aluno (Segmentação Real com KMeans)
 # ==========================================
+import sys
+import importlib
+
+# O Python não aceita "import k-means" com hífen diretamente; importamos via importlib:
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+KMeansSegmentation = importlib.import_module("k-means").KMeansSegmentation
+
+_kmeans_segmenter = KMeansSegmentation()
+
 def segmenta_imagem(imagem_array, k):
     """
-    Substitua pelo script real de segmentação do aluno.
+    Segmentação real da imagem utilizando a classe KMeansSegmentation.
     Recebe o array da imagem já em memória e o número de clusters K.
+    Retorna a matriz da imagem segmentada pronta para visualização no plt.imshow.
     """
-    # Mock de processamento para testes (remova na versão final)
-    # Simula um tempo de execução proporcional a O(n*K)
-    n = imagem_array.shape[0] * imagem_array.shape[1]
-    time.sleep((n * k) * 1e-8)
-    pass
+    return _kmeans_segmenter.find_clusters(imagem_array, cluster_numbers=k, max_iter=20, verbose=False)
 
 # ==========================================
 # 2. Descoberta e Ordenação Ligeira (Sem estourar RAM)
