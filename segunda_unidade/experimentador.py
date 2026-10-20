@@ -76,7 +76,15 @@ for item in arquivos_n:
             seg_img = segmenta_imagem(img_array, k)  # A matriz é passada aqui
             t1 = time.perf_counter()
             
-            if r==0: plt.imshow(seg_img), plt.show()
+            if r == 0:
+                pasta_seg = os.path.join(os.path.dirname(os.path.abspath(__file__)), "imagens_segmentadas")
+                os.makedirs(pasta_seg, exist_ok=True)
+                nome_base = os.path.splitext(nome_arquivo)[0]
+                caminho_salvo = os.path.join(pasta_seg, f"seg_{nome_base}_k{k}.png")
+                Image.fromarray(seg_img).save(caminho_salvo)
+                print(f"  -> Imagem segmentada salva: {caminho_salvo}", flush=True)
+
+            print(f"  [{nome_arquivo}] k={k} | Repeticao {r+1}/{R} concluida em {(t1 - t0):.2f}s", flush=True)
 
             resultados.append({
                 'arquivo': nome_arquivo,
@@ -175,7 +183,7 @@ if not df_raw.empty:
     
     plt.tight_layout()
     plt.savefig('relatorio_complexidade.png', dpi=300)
-    plt.show()
+    plt.close()
     
     print("\nPipeline concluído. Gráficos gerados e salvos como 'relatorio_complexidade.png'.")
 	
