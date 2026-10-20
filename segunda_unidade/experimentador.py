@@ -74,6 +74,7 @@ for item in arquivos_n:
     # Executa todas as repetições e Ks para esta imagem
     for k in k_list:
         for r in range(R):
+            np.random.seed(67)
             t0 = time.perf_counter()
             seg_img = segmenta_imagem(img_array, k)  # A matriz é passada aqui
             t1 = time.perf_counter()
